@@ -20,9 +20,9 @@ gcloud builds submit --tag gcr.io/$PROJECT_ID/$SERVICE
 gcloud run deploy $SERVICE --image gcr.io/$PROJECT_ID/$SERVICE --platform managed
 
 # per service init
-gcloud pubsub topics create $TOPIC
-gcloud run services add-iam-policy-binding $SERVICE --member=serviceAccount:cloud-run-pubsub-invoker@${PROJECT_ID}.iam.gserviceaccount.com --role=roles/run.invoker
+#gcloud pubsub topics create $TOPIC
+#gcloud run services add-iam-policy-binding $SERVICE --member=serviceAccount:cloud-run-pubsub-invoker@${PROJECT_ID}.iam.gserviceaccount.com --role=roles/run.invoker
 SERVICE_URL=`gcloud run services list | grep $SERVICE | awk '{print $4}'`
-echo $SERVICE_URL
-gcloud pubsub subscriptions delete $TOPIC
-gcloud pubsub subscriptions create $TOPIC --topic $TOPIC --push-endpoint=$SERVICE_URL --push-auth-service-account=cloud-run-pubsub-invoker@${PROJECT_ID}.iam.gserviceaccount.com --ack-deadline=60
+#echo $SERVICE_URL
+#gcloud pubsub subscriptions delete $TOPIC
+#gcloud pubsub subscriptions create $TOPIC --topic $TOPIC --push-endpoint=$SERVICE_URL --push-auth-service-account=cloud-run-pubsub-invoker@${PROJECT_ID}.iam.gserviceaccount.com --ack-deadline=60

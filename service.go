@@ -32,6 +32,7 @@ type PubSubMessage struct {
 }
 
 type Payload struct {
+	CampaignId int `json:"campaign_id"`
 	Leads      []Lead `json:"leads"`
 	Tokens     []Token `json:"tokens"`
 }
@@ -163,29 +164,37 @@ func handler(w http.ResponseWriter, r *http.Request) error {
 	ctx := context.Background()
 	dsClient, err := datastore.NewClient(ctx, proj)
 
-	for _, lead := range p.Leads {
-		log.Printf("uid %s", lead.Uid)
+	send_email := false
+	for i, lead := range p.Leads {
 		k := datastore.NameKey("EmailContact", lead.Uid, nil)
 		e := new(EmailContact)
 		if err := dsClient.Get(ctx, k, e); err != nil {
 			log.Printf("can't get record for %s", lead.Uid)
 		} else {
-			lead.Id = e.LeadId
-			log.Printf("uid %s %d", lead.Uid, lead.Id)
+			if e.IsSubscribed {
+				send_email = true
+				lead.Id = e.LeadId
+				p.Leads[i] = lead
+			} else {
+				log.Printf("lead is unsubscribed %s", lead.Uid)
+			}
 		}
 	}
 
-	req := new(MarketoReq)
-	req.Input = p
-	dataInBytes, err := json.Marshal(req)
-	log.Printf("req: %s", string(dataInBytes))
-	response, err := client.Post("/rest/v1/campaigns/1422/trigger.json", dataInBytes)
-	if err != nil {
-	    log.Printf("error posting to marketo %v", err)
+	if send_email {
+		req := new(MarketoReq)
+		req.Input = p
+		dataInBytes, err := json.Marshal(req)
+		log.Printf("req: %s", string(dataInBytes))
+		url := fmt.Sprintf("/rest/v1/campaigns/%d/trigger.json", p.CampaignId)
+		response, err := client.Post(url, dataInBytes)
+		if err != nil {
+	  	  log.Printf("error posting to marketo %v", err)
+		}
+		if !response.Success {
+	  	  log.Printf("response is not success %v", response.Errors)
+		}
+		log.Printf("Campaign triggered")
 	}
-	if !response.Success {
-	    log.Printf("response is not success %v", response.Errors)
-	}
-	log.Printf("Campaign triggered")
 	return nil
 }
